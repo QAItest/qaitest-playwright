@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace QAItest.Playwright.DotNet.Utils;
 
@@ -6,16 +6,27 @@ public static class SecretLoader
 {
     public static Dictionary<string, object> GetSecretMap(string secretId)
     {
-        if (secretId.StartsWith("env:"))
+        if (secretId.StartsWith("env:", StringComparison.Ordinal))
         {
             var envName = secretId[4..];
-            return Parse(Environment.GetEnvironmentVariable(envName));
+            var raw = Environment.GetEnvironmentVariable(envName);
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                throw new InvalidOperationException($"Environment variable is empty or undefined: {envName}");
+            }
+
+            return Parse(raw);
         }
 
-        if (secretId.StartsWith("file:"))
+        if (secretId.StartsWith("file:", StringComparison.Ordinal))
         {
             var filePath = Path.GetFullPath(secretId[5..]);
-            return File.Exists(filePath) ? Parse(File.ReadAllText(filePath)) : new Dictionary<string, object>();
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException("Secret file not found.", filePath);
+            }
+
+            return Parse(File.ReadAllText(filePath));
         }
 
         var envValue = Environment.GetEnvironmentVariable(secretId);
@@ -25,14 +36,25 @@ public static class SecretLoader
         }
 
         var candidatePath = Path.GetFullPath(secretId);
-        return File.Exists(candidatePath) ? Parse(File.ReadAllText(candidatePath)) : new Dictionary<string, object>();
+        if (File.Exists(candidatePath))
+        {
+            return Parse(File.ReadAllText(candidatePath));
+        }
+
+        throw new InvalidOperationException($"Secret could not be resolved from env or file: {secretId}");
     }
 
-    private static Dictionary<string, object> Parse(string? value)
+    public static Dictionary<string, object> GetSecretDict(string secretId)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        return GetSecretMap(secretId);
+    }
+
+    private static Dictionary<string, object> Parse(string value)
+    {
+        using var document = JsonDocument.Parse(value);
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
         {
-            return new Dictionary<string, object>();
+            throw new InvalidOperationException("Expected a JSON object / dictionary payload.");
         }
 
         return JsonSerializer.Deserialize<Dictionary<string, object>>(value) ?? new Dictionary<string, object>();
