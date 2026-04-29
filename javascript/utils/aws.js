@@ -1,4 +1,4 @@
-﻿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 
 function normalizeMapping(value) {
@@ -8,22 +8,39 @@ function normalizeMapping(value) {
   return value;
 }
 
+function loadJsonFile(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
 async function getSecretDict(secretId) {
   if (secretId.startsWith("env:")) {
     const envName = secretId.split(":", 2)[1];
-    return normalizeMapping(JSON.parse(process.env[envName] || "{}"));
+    const raw = (process.env[envName] || "").trim();
+    if (!raw) {
+      throw new Error(`Environment variable '${envName}' is empty or undefined.`);
+    }
+    return normalizeMapping(JSON.parse(raw));
   }
+
   if (secretId.startsWith("file:")) {
-    return normalizeMapping(JSON.parse(fs.readFileSync(path.resolve(secretId.split(":", 2)[1]), "utf8")));
+    const filePath = path.resolve(secretId.split(":", 2)[1]);
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Secret file not found: ${filePath}`);
+    }
+    return normalizeMapping(loadJsonFile(filePath));
   }
-  if ((process.env[secretId] || "").trim()) {
-    return normalizeMapping(JSON.parse(process.env[secretId]));
+
+  const envValue = (process.env[secretId] || "").trim();
+  if (envValue) {
+    return normalizeMapping(JSON.parse(envValue));
   }
+
   const candidate = path.resolve(secretId);
   if (fs.existsSync(candidate)) {
-    return normalizeMapping(JSON.parse(fs.readFileSync(candidate, "utf8")));
+    return normalizeMapping(loadJsonFile(candidate));
   }
-  return {};
+
+  throw new Error(`Secret could not be resolved from env or file: ${secretId}`);
 }
 
 module.exports = { getSecretDict };
