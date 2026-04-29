@@ -1,0 +1,16 @@
+﻿{
+  "name": "qaitest-playwright-javascript",
+  "version": "0.1.0",
+  "private": true,
+  "description": "JavaScript Playwright starter with BDD-friendly structure.",
+  "scripts": {
+    "install:browsers": "playwright install chromium",
+    "test-open": "playwright test --ui",
+    "test-bdd": "playwright test",
+    "test-headed": "playwright test --headed",
+    "test-debug": "playwright test --debug"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0"
+  }
+}

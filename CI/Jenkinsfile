@@ -1,0 +1,55 @@
+﻿pipeline {
+  agent any
+
+  stages {
+    stage("JavaScript") {
+      steps {
+        dir("javascript") {
+          bat "npm install"
+          bat "npm run test-bdd"
+        }
+      }
+    }
+
+    stage("TypeScript") {
+      steps {
+        dir("typescript") {
+          bat "npm install"
+          bat "npm run test-bdd"
+        }
+      }
+    }
+
+    stage("Python") {
+      steps {
+        dir("python") {
+          bat "python -m pip install -e ."
+          bat "python -m playwright install chromium"
+          bat "pytest -q"
+        }
+      }
+    }
+
+    stage("Java") {
+      steps {
+        dir("java") {
+          bat "mvn test"
+        }
+      }
+    }
+
+    stage("DotNet") {
+      steps {
+        dir("dotnet") {
+          bat "dotnet test"
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: "reports/**", allowEmptyArchive: true
+    }
+  }
+}

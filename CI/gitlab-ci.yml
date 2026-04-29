@@ -1,0 +1,61 @@
+﻿stages:
+  - test
+
+javascript:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.58.0-noble
+  script:
+    - cd javascript
+    - npm install
+    - npm run test-bdd
+  artifacts:
+    when: always
+    paths:
+      - reports/
+
+typescript:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.58.0-noble
+  script:
+    - cd typescript
+    - npm install
+    - npm run test-bdd
+  artifacts:
+    when: always
+    paths:
+      - reports/
+
+python:
+  stage: test
+  image: python:3.12
+  script:
+    - cd python
+    - pip install -e .
+    - python -m playwright install chromium
+    - pytest -q
+  artifacts:
+    when: always
+    paths:
+      - reports/
+
+java:
+  stage: test
+  image: maven:3.9.9-eclipse-temurin-17
+  script:
+    - cd java
+    - mvn -q test
+  artifacts:
+    when: always
+    paths:
+      - reports/
+
+dotnet:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - cd dotnet
+    - dotnet test
+  artifacts:
+    when: always
+    paths:
+      - reports/
